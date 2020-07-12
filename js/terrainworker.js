@@ -46,12 +46,8 @@ function getLandTexture(x, y, height) {
     return 2;
 }
 
-function createChunk (x, y) {
-    let pa = new Float32Array((chunkSize.x + 1) * (chunkSize.y + 1) * 3);
-    let hVerts = chunkSize.x + 1;
-    let wVerts = chunkSize.y + 1;
-    let landTextures = new Float32Array((chunkSize.x + 1) * (chunkSize.y + 1));
-    
+function updateGrass(x, y, range) {
+
     let matrix = new THREE.Matrix4();
     let position = new THREE.Vector3();
     let rotation = new THREE.Euler();
@@ -60,38 +56,48 @@ function createChunk (x, y) {
     let grassTextures = [];
     let grassMatrices = [];
 
-    let xPos, yPos, height;
-    
-    for (let j = 0; j < hVerts; j++) {
-        for (let i = 0; i < wVerts; i++) {
-            xPos = j - (chunkSize.x) / 2 + x;
-            yPos = i - (chunkSize.y) / 2 + y;
-            pa[3 * (j * wVerts + i)] = xPos;
-            pa[3 * (j * wVerts + i) + 2] = yPos;
+    let itemsAdded = 0;
+
+    for (let j = 0; j < range; j++) {
+        for (let i = 0; i < range; i++) {
+            if (itemsAdded > 2000)
+                break;
+            xPos = j - range / 2 + x;
+            yPos = i - range / 2 + y;
             height = getHeight(xPos, yPos);
-            pa[3 * (j * wVerts + i) + 1] = height;
-            landTextures[j * wVerts + i] = getLandTexture(xPos, yPos, height);
-            if (i != 0 && j != 0 && height > heights.sand + 1 && height < heights.sand + 8) {
+            if (height > heights.sand + 1 && height < heights.sand + 8) {
                 if (noise.simplex2(xPos / 5, yPos / 5) > 0.5) {
                     scale.set(1, 1, 1);
                     position.x = xPos;
                     position.z = yPos;
                     position.y = height + 0.25;
-                    rotation.y = Math.random() * Math.PI * 2;
+                    rotation.y = noise.simplex2(xPos, yPos) * Math.PI * 2;
                     quaternion.setFromEuler( rotation );
                     matrix.compose(position, quaternion, scale);
                     matrix.toArray().forEach(element => {
                         grassMatrices.push(element);
                     });
-                    
-                    grassTextures.push(Math.random());
+                    grassTextures.push( noise.simplex2(xPos, yPos));
+                    itemsAdded++;
                 }
+            }
+        }
+    }
+
+    for (let j = 0; j < range * 2; j++) {
+        for (let i = 0; i < range * 2; i++) {
+            if (itemsAdded > 2000)
+                break;
+            xPos = j - range + x;
+            yPos = i - range + y;
+            height = getHeight(xPos, yPos);
+            if (height > heights.sand + 1 && height < heights.sand + 8) {
                 if (noise.simplex2(xPos / 7, yPos / 7) * noise.simplex2(xPos / 1, yPos / 1) > 0.8) {
                     scale.set(10, 10, 10);
                     position.x = xPos;
                     position.z = yPos;
                     position.y = height + 2.0;
-                    rotation.y = Math.random() * Math.PI * 2;
+                    rotation.y = noise.simplex2(xPos / 5, yPos / 5) * Math.PI;
                     quaternion.setFromEuler( rotation );
                     matrix.compose(position, quaternion, scale);
                     matrix.toArray().forEach(element => {
@@ -105,14 +111,45 @@ function createChunk (x, y) {
                     });
                     grassTextures.push(10);
                     grassTextures.push(10);
+                    itemsAdded+=2;
                 }
             }
         }
     }
-    return [x, y, pa, landTextures, grassMatrices, grassTextures];
+
+    return ["grass", grassMatrices, grassTextures];
+}
+
+function createChunk (x, y) {
+    let pa = new Float32Array((chunkSize.x + 1) * (chunkSize.y + 1) * 3);
+    let hVerts = chunkSize.x + 1;
+    let wVerts = chunkSize.y + 1;
+    let landTextures = new Float32Array((chunkSize.x + 1) * (chunkSize.y + 1));
+    
+    let xPos, yPos, height;
+    
+    for (let j = 0; j < hVerts; j++) {
+        for (let i = 0; i < wVerts; i++) {
+            xPos = j - (chunkSize.x) / 2 + x;
+            yPos = i - (chunkSize.y) / 2 + y;
+            pa[3 * (j * wVerts + i)] = xPos;
+            pa[3 * (j * wVerts + i) + 2] = yPos;
+            height = getHeight(xPos, yPos);
+            pa[3 * (j * wVerts + i) + 1] = height;
+            landTextures[j * wVerts + i] = getLandTexture(xPos, yPos, height);
+        }
+    }
+    return ["land", x, y, pa, landTextures];
 }
 
 
 onmessage = function(event) {
-    postMessage(createChunk(event.data[0], event.data[1]));
+    switch(event.data[0]) {
+        case "land":
+            postMessage(createChunk(event.data[1], event.data[2]));
+            break;
+        case "grass":
+            postMessage(updateGrass(event.data[1], event.data[2], event.data[3]));
+            break;
+    }
   }
