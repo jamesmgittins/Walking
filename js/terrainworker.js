@@ -80,7 +80,10 @@ function createChunk (x, y) {
                     rotation.y = Math.random() * Math.PI * 2;
                     quaternion.setFromEuler( rotation );
                     matrix.compose(position, quaternion, scale);
-                    grassMatrices.push(matrix.toArray());
+                    matrix.toArray().forEach(element => {
+                        grassMatrices.push(element);
+                    });
+                    
                     grassTextures.push(Math.random());
                 }
                 if (noise.simplex2(xPos / 7, yPos / 7) * noise.simplex2(xPos / 1, yPos / 1) > 0.8) {
@@ -91,11 +94,15 @@ function createChunk (x, y) {
                     rotation.y = Math.random() * Math.PI * 2;
                     quaternion.setFromEuler( rotation );
                     matrix.compose(position, quaternion, scale);
-                    grassMatrices.push(matrix.toArray());
+                    matrix.toArray().forEach(element => {
+                        grassMatrices.push(element);
+                    });
                     rotation.y += 0.5 * Math.PI;
                     quaternion.setFromEuler( rotation );
                     matrix.compose(position, quaternion, scale);
-                    grassMatrices.push(matrix.toArray());
+                    matrix.toArray().forEach(element => {
+                        grassMatrices.push(element);
+                    });
                     grassTextures.push(10);
                     grassTextures.push(10);
                 }
